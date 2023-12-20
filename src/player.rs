@@ -1,8 +1,8 @@
-use bevy::{input::mouse::MouseMotion, math::vec2, prelude::*};
+use bevy::prelude::*;
 
 use crate::{
     camera::MainCamera,
-    movement::{LinearForceScaler, LinearFriction, LinearMaxVelocity, LinearVelocity},
+    physcis::movement::{LinearForceFactor, LinearFriction, LinearMaxVelocity, LinearVelocity},
 };
 
 pub struct PlayerPlugin;
@@ -31,9 +31,9 @@ fn spawn_player(mut commands: Commands) {
             ..default()
         },
         LinearVelocity::ZERO,
-        LinearMaxVelocity::new(300.0),
-        LinearForceScaler::splat(Vec2::new(10.0, 20.0)),
-        LinearFriction::new(Vec2::splat(200.0)),
+        LinearMaxVelocity::new(500.0),
+        LinearForceFactor::splat(Vec2::new(5.0, 15.0)),
+        LinearFriction::new(Vec2::splat(500.0)),
         Player,
     ));
 }
