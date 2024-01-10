@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 mod camera;
-mod physcis;
+mod physics;
 mod player;
 mod terrain;
 
@@ -11,7 +11,8 @@ fn main() {
         .insert_resource(ClearColor(Color::rgb_u8(100, 140, 70)))
         .add_plugins((
             camera::CameraPlugin,
-            physcis::movement::MovementPlugin,
+            physics::movement::MovementPlugin,
+            physics::collision_detection::CollisionDetectionPlugin,
             player::PlayerPlugin,
             terrain::TerrainPlugin,
         ))

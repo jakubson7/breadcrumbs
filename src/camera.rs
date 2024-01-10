@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{physcis::movement::LinearVelocity, player::Player};
+use crate::{physics::movement::LinearVelocity, player::Player};
 
 const MIN_MARGIN: f32 = 100.0;
 const PERCENT_MARGIN: f32 = 0.35;

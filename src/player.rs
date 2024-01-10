@@ -2,7 +2,10 @@ use bevy::prelude::*;
 
 use crate::{
     camera::MainCamera,
-    physcis::movement::{LinearForceFactor, LinearFriction, LinearMaxVelocity, LinearVelocity},
+    physics::{
+        collision_detection::{Collider, CollisionDetector},
+        movement::{LinearForceFactor, LinearFriction, LinearMaxVelocity, LinearVelocity},
+    },
 };
 
 pub struct PlayerPlugin;
@@ -15,8 +18,14 @@ pub struct Missile;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(PostStartup, spawn_player)
-            .add_systems(Update, (control_player_movement, control_player_rotation));
+        app.add_systems(PostStartup, spawn_player).add_systems(
+            Update,
+            (
+                control_player_movement,
+                control_player_rotation,
+                show_player_collisions,
+            ),
+        );
     }
 }
 
@@ -28,13 +37,41 @@ fn spawn_player(mut commands: Commands) {
                 color: Color::ORANGE_RED,
                 ..default()
             },
+            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 10.0)),
             ..default()
         },
         LinearVelocity::ZERO,
         LinearMaxVelocity::new(500.0),
         LinearForceFactor::splat(Vec2::new(5.0, 15.0)),
         LinearFriction::new(Vec2::splat(500.0)),
+        Collider::square(50.0),
+        CollisionDetector::new(500.0),
         Player,
+    ));
+
+    commands.spawn((
+        SpriteBundle {
+            sprite: Sprite {
+                custom_size: Some(Vec2::new(50.0, 50.0)),
+                color: Color::BLUE,
+                ..default()
+            },
+            ..default()
+        },
+        Collider::square(50.0),
+    ));
+
+    commands.spawn((
+        SpriteBundle {
+            sprite: Sprite {
+                custom_size: Some(Vec2::new(100.0, 100.0)),
+                color: Color::BLUE,
+                ..default()
+            },
+            transform: Transform::from_translation(Vec3::new(200.0, 200.0, 0.0)),
+            ..default()
+        },
+        Collider::square(100.0),
     ));
 }
 
@@ -80,4 +117,11 @@ fn control_player_rotation(
     let angle = relative_cursor_position.angle_between(Vec2::X);
 
     player_transform.rotation = Quat::from_rotation_z(angle);
+}
+fn show_player_collisions(query: Query<&Collider, With<Player>>) {
+    let collider = query.single();
+
+    if collider.collisions.len() != 0 {
+        //info!("{:?}", collider.collisions);
+    }
 }
