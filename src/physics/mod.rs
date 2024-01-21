@@ -1,2 +1,2 @@
-pub mod collision_detection;
+pub mod collision;
 pub mod movement;

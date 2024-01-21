@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use crate::{
     camera::MainCamera,
     physics::{
-        collision_detection::{Collider, CollisionDetector},
+        collision::{Collider, CollisionDetector, StaticBody},
         movement::{LinearForceFactor, LinearFriction, LinearMaxVelocity, LinearVelocity},
     },
 };
@@ -59,19 +59,7 @@ fn spawn_player(mut commands: Commands) {
             ..default()
         },
         Collider::square(50.0),
-    ));
-
-    commands.spawn((
-        SpriteBundle {
-            sprite: Sprite {
-                custom_size: Some(Vec2::new(100.0, 100.0)),
-                color: Color::BLUE,
-                ..default()
-            },
-            transform: Transform::from_translation(Vec3::new(200.0, 200.0, 0.0)),
-            ..default()
-        },
-        Collider::square(100.0),
+        StaticBody,
     ));
 }
 

@@ -12,7 +12,7 @@ fn main() {
         .add_plugins((
             camera::CameraPlugin,
             physics::movement::MovementPlugin,
-            physics::collision_detection::CollisionDetectionPlugin,
+            physics::collision::CollisionPlugin,
             player::PlayerPlugin,
             terrain::TerrainPlugin,
         ))

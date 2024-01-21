@@ -1,16 +1,17 @@
 use bevy::prelude::*;
 
-pub struct CollisionDetectionPlugin;
+pub struct CollisionPlugin;
 
-impl Plugin for CollisionDetectionPlugin {
+impl Plugin for CollisionPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             PreUpdate,
             (
+                (flush_collider, flush_collision_detector),
                 update_vertices,
                 detect_collision_target,
                 detect_collision,
-                (flush_collider, flush_collision_detector),
+                handle_static_body_collisions,
             )
                 .chain(),
         );
@@ -19,15 +20,15 @@ impl Plugin for CollisionDetectionPlugin {
 
 #[derive(Debug)]
 pub struct Collision {
-    pub entity: Entity,
-    pub delta_translation: Vec2,
+    pub entity: Entity, 
+    pub offset: Vec2,
 }
 
 impl Collision {
-    pub fn new(entity: Entity, delta_translation: Vec2) -> Self {
+    pub fn new(entity: Entity, offset: Vec2) -> Self {
         Self {
             entity,
-            delta_translation,
+            offset,
         }
     }
 }
@@ -82,26 +83,17 @@ impl CollisionDetector {
     }
 }
 
+#[derive(Component)]
+pub struct StaticBody;
+
 fn calc_collision(a: (Vec2, Vec2), b: (Vec2, Vec2)) -> Option<Vec2> {
-    let mut delta = Vec2::ZERO;
-
-    if a.0.x < b.1.x {
-        delta.x += a.0.x - b.1.x;
-    }
-    if a.1.x > b.0.x {
-        delta.x += b.0.x - a.1.x;
-    }
-    if a.0.y < b.1.y {
-        delta.y += a.0.y - b.1.y;
-    }
-    if a.1.y > b.0.y {
-        delta.y += b.0.y - a.1.y;
+    if (a.0.x > b.1.x) && (a.1.x < b.0.x) && (a.0.y > b.1.y) && (a.1.y < b.0.y) {
+        let delta_x = if (a.0.x - b.1.x) < (b.0.x - a.1.x) { b.1.x - a.0.x } else { b.0.x - a.1.x };
+        let delta_y = if (a.0.y - a.1.y) < (b.0.y - a.1.y) { b.1.y - a.0.y } else { b.0.y - a.1.y };
+        return Some(Vec2::new(delta_x, delta_y));
     }
 
-    match (delta.x, delta.y) {
-        (0.0, 0.0) => None,
-        _ => Some(delta),
-    }
+    return None;
 }
 fn update_vertices(mut query: Query<(&mut Collider, &GlobalTransform)>) {
     for (mut collider, global_transform) in query.iter_mut() {
@@ -144,12 +136,11 @@ fn detect_collision(
         for &target_entity in detector.possible_targets.iter() {
             let mut target_collider = target_query.get_mut(target_entity).unwrap();
 
-            if let Some(delta_translation) =
+            if let Some(offset) =
                 calc_collision(detector_collider.vertices, target_collider.vertices)
             {
-                info!("{:?}, {:?}", target_entity, delta_translation);
-                //detector_collider.collide(Collision::new(target_entity, delta_translation));
-                //target_collider.collide(Collision::new(detector_entity, delta_translation));
+                detector_collider.collide(Collision::new(target_entity, offset));
+                target_collider.collide(Collision::new(detector_entity, offset));
             }
         }
     }
@@ -164,5 +155,19 @@ fn flush_collider(mut query: Query<&mut Collider>) {
 fn flush_collision_detector(mut query: Query<&mut CollisionDetector>) {
     for mut detector in query.iter_mut() {
         detector.flush();
+    }
+}
+
+fn handle_static_body_collisions(
+    mut transform_query: Query<&mut Transform, (With<Collider>, Without<StaticBody>)>,
+    static_body_query: Query<&Collider, With<StaticBody>>,
+) {
+    for collider in static_body_query.iter() {
+        for collision in collider.collisions.iter() {
+            if let Ok(mut transform) = transform_query.get_mut(collision.entity) {
+                info!("{:?}", collision.offset);
+                transform.translation += collision.offset.extend(0.0);
+            }
+        }
     }
 }
