@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use super::movement::LinearVelocity;
+
 pub struct CollisionPlugin;
 
 impl Plugin for CollisionPlugin {
@@ -20,16 +22,13 @@ impl Plugin for CollisionPlugin {
 
 #[derive(Debug)]
 pub struct Collision {
-    pub entity: Entity, 
+    pub entity: Entity,
     pub offset: Vec2,
 }
 
 impl Collision {
     pub fn new(entity: Entity, offset: Vec2) -> Self {
-        Self {
-            entity,
-            offset,
-        }
+        Self { entity, offset }
     }
 }
 
@@ -88,8 +87,16 @@ pub struct StaticBody;
 
 fn calc_collision(a: (Vec2, Vec2), b: (Vec2, Vec2)) -> Option<Vec2> {
     if (a.0.x > b.1.x) && (a.1.x < b.0.x) && (a.0.y > b.1.y) && (a.1.y < b.0.y) {
-        let delta_x = if (a.0.x - b.1.x) < (b.0.x - a.1.x) { b.1.x - a.0.x } else { b.0.x - a.1.x };
-        let delta_y = if (a.0.y - a.1.y) < (b.0.y - a.1.y) { b.1.y - a.0.y } else { b.0.y - a.1.y };
+        let delta_x = if (a.0.x - b.1.x) < (b.0.x - a.1.x) {
+            b.1.x - a.0.x
+        } else {
+            b.0.x - a.1.x
+        };
+        let delta_y = if (a.0.y - a.1.y) < (b.0.y - a.1.y) {
+            b.1.y - a.0.y
+        } else {
+            b.0.y - a.1.y
+        };
         return Some(Vec2::new(delta_x, delta_y));
     }
 
@@ -159,14 +166,25 @@ fn flush_collision_detector(mut query: Query<&mut CollisionDetector>) {
 }
 
 fn handle_static_body_collisions(
-    mut transform_query: Query<&mut Transform, (With<Collider>, Without<StaticBody>)>,
+    mut transform_query: Query<
+        (&mut Transform, &mut LinearVelocity),
+        (With<Collider>, Without<StaticBody>),
+    >,
     static_body_query: Query<&Collider, With<StaticBody>>,
 ) {
     for collider in static_body_query.iter() {
         for collision in collider.collisions.iter() {
-            if let Ok(mut transform) = transform_query.get_mut(collision.entity) {
-                info!("{:?}", collision.offset);
-                transform.translation += collision.offset.extend(0.0);
+            if let Ok((mut transform, mut linear_velocity)) =
+                transform_query.get_mut(collision.entity)
+            {
+                if collision.offset.x.abs() < collision.offset.y.abs() {
+                    transform.translation.x += collision.offset.x;
+                } else {
+                    transform.translation.y += collision.offset.y;
+                }
+
+                linear_velocity.flush();
+                linear_velocity.set(Vec2::ZERO);
             }
         }
     }
